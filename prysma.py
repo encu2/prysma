@@ -6,6 +6,7 @@ import re
 import timeit
 
 temp = {}
+openPortS = []
 proto = 'socks5'
 defTimeout = 5
 
@@ -153,28 +154,36 @@ async def openPort(*host):
 	try:
 		here, ini = await looper.create_connection(io.BaseProtocol, host=ip, port=port)
 		here.close()
-		# temp['portOpen'].append(host)
-		# await io.sleep(0.000001)
+		openPortS.append(host[0])
 	except:
-		return 0
+		pass
 
-	return host[0]
+	
+	# temp['portOpen'].append(host)
+	# await io.sleep(0.000001)
 
 async def reqTest(host):
-	if not host == 0:
+	if host:
 		# proxy = f'socks5://{host}'
 			timeout = hx.Timeout(defTimeout)
 			limits = hx.Limits(max_keepalive_connections=5, max_connections=5)
 			async with hx.AsyncClient(http2 = True, proxies = f'socks5://{host}', timeout = timeout, limits = limits) as client:
 				try:
-					Get = await client.get(hostS())
-					# await io.sleep(0.2)
+					Get = await client.head(hostS())
+					await io.sleep(0.1)
 					if Get.status_code == 200:
 						print(host)
 						temp['results'].append(host)
 						await client.aclose()
 				except:
 					pass
+
+# async def runOpenPorts(a):
+# 	try:
+# 		return 
+# 	except:
+# 		return 0
+
 
 async def main():
 		funcS = [spidy0, spidy1, spidy2]
@@ -187,17 +196,23 @@ async def main():
 			for i in temp.values():
 				toOpenPort += [*i]
 				# print(i)
-			openPortS = await io.gather(*[await io.to_thread(openPort,toOpenPort[i]) async for i in Arange(len(toOpenPort)).__aiter__()])
+			with timer('open port'):
+				try:
+					await io.wait_for(io.gather(*[await io.to_thread(openPort, toOpenPort[i]) async for i in Arange(len(toOpenPort)).__aiter__()]), timeout = 10)
+				except:
+					pass
 			del toOpenPort
+			print(openPortS)
 			for _ in range(len(temp.keys())):
 				temp.popitem()
+			# print(openPortS)
 			temp.update([('results', [])])
 			# async for i in Arange(len(openPortS)).__aiter__():
 			try:
-				requestTest = await io.wait_for(io.gather(*[await io.to_thread(reqTest, openPortS[i]) async for i in Arange(len(openPortS)).__aiter__()]), timeout = 60.0) 
+				requestTest = await io.wait_for(io.gather(*[await io.to_thread(reqTest, openPortS[i]) async for i in Arange(len(openPortS)).__aiter__()]), timeout = 10.0) 
 			except:
 				print(temp['results'])
-			# runOpenPort = await io.gather(openPort())
+			# # runOpenPort = await io.gather(openPort())
 			# print(portCheck, temp['portOpen'])
 			# print(temp['portOpen'])
 			# break
